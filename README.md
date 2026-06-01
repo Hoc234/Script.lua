@@ -1,1682 +1,562 @@
--- Banana Cat Hub - Blox Fruits Script v9.0 FINAL
--- Silent Kill Auto-ON + Race V2/V3 + Haki 7 Màu + Moon Gaze Blue Gear + Clean UI
--- Copy toàn bộ vào executor
+--// ================================================================ //--
+--// Beta HUB - PHIÊN BẢN BANANA (V5 - ĐÃ SỬA LỖI & ĐẦY ĐỦ)    --//
+--// ================================================================ //--
 
+local CONFIG = {
+    HubName = "Beta HUB",
+    Creator = "Beta Dev",
+    LoadingText = "Đang tải Beta Hub",
+    
+    -- ID ROBLOX - HÃY THAY THẾ CÁC ID NÀY ĐỂ HUB ĐẸP HƠN
+    LogoID = "rbxassetid://120488231660846", -- Ảnh Logo hình tròn (có thể thay bằng logo quả chuối)
+    BackgroundID = "rbxassetid://120488231660846", -- Ảnh nền Menu (có thể thay bằng tông vàng)
+    MusicID = "rbxassetid://1837879082", -- Nhạc nền (có thể đổi thành nhạc vui nhộn)
+    
+    TotalMembers = "978",
+    OnlineMembers = "342",
+    Description = "🍌 Chào mừng đến với Beta Hub! 🍌\nPhiên bản Banana siêu mượt mà và ngọt ngào.\nNơi cung cấp Script chất lượng, an toàn và ổn định.\nCập nhật liên tục để mang đến trải nghiệm tốt nhất.",
+
+    -- Màu sắc theo phong cách Chuối / Banana
+    MainColor = Color3.fromRGB(255, 225, 0),      -- Vàng chuối đậm (Chuối chín)
+    GradientColor = Color3.fromRGB(255, 240, 100), -- Vàng nhạt hơn cho gradient
+    SecondaryColor = Color3.fromRGB(30, 25, 0),   -- Nền tối pha vàng đất (thay vì đen tuyền)
+    
+    FontMain = Enum.Font.Ubuntu,
+    FontBold = Enum.Font.GothamBold,
+    ToggleKey = Enum.KeyCode.RightControl
+}
+
+--// ================================================================ //--
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local Workspace = game:GetService("Workspace")
-local VIM = game:GetService("VirtualInputManager")
-local VirtualUser = game:GetService("VirtualUser")
-local TeleportService = game:GetService("TeleportService")
 local Lighting = game:GetService("Lighting")
 
--- ==================== SILENT KILL (Always ON) ====================
-local SilentKillRange = 45
-local SilentKillDamage = 20
-local HitboxSize = 35
-local FarmHeight = 35
+local UI_NAME = "BetaHub_Banana"
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+if playerGui:FindFirstChild(UI_NAME) then playerGui[UI_NAME]:Destroy() end
 
-local function SilentKillAlways()
-    spawn(function()
-        while true do
-            task.wait(0.015)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                local hum = c:FindFirstChildOfClass("Humanoid")
-                if not root or not hum or hum.Health <= 0 then return end
-                
-                local weapon = nil
-                for _, t in ipairs(c:GetChildren()) do
-                    if t:IsA("Tool") and t:FindFirstChild("Handle") then
-                        weapon = t
-                        break
-                    end
-                end
-                if not weapon then
-                    for _, t in ipairs(LP.Backpack:GetChildren()) do
-                        if t:IsA("Tool") and t:FindFirstChild("Handle") then
-                            hum:EquipTool(t)
-                            weapon = t
-                            break
-                        end
-                    end
-                end
-                
-                if weapon and weapon:FindFirstChild("Handle") then
-                    local h = weapon.Handle
-                    if h:IsA("BasePart") then
-                        h.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
-                        h.Transparency = 0.95
-                        h.CanCollide = false
-                    end
-                end
-                
-                local nearest = nil
-                local nearestDist = SilentKillRange
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                        local eh = obj:FindFirstChildOfClass("Humanoid")
-                        local er = obj:FindFirstChild("HumanoidRootPart")
-                        if eh and er and eh.Health > 0 and obj ~= c and not Players:GetPlayerFromCharacter(obj) then
-                            local dist = (root.Position - er.Position).Magnitude
-                            if dist < nearestDist then
-                                nearestDist = dist
-                                nearest = obj
-                            end
-                        end
-                    end
-                end
-                
-                if nearest then
-                    local er = nearest:FindFirstChild("HumanoidRootPart")
-                    local eh = nearest:FindFirstChildOfClass("Humanoid")
-                    if er and eh and eh.Health > 0 then
-                        root.CFrame = er.CFrame * CFrame.new(math.random(-5,5), FarmHeight, math.random(-5,5))
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton1(Vector2.new())
-                        if eh.Health > 50 then
-                            eh.Health = math.max(0, eh.Health - SilentKillDamage)
-                        end
-                    end
-                end
-            end)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = UI_NAME
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = playerGui
+
+--// SETUP ÂM THANH
+local function CreateSound(id, volume, loop)
+    local snd = Instance.new("Sound", ScreenGui)
+    snd.SoundId = id
+    snd.Volume = volume
+    snd.Looped = loop or false
+    return snd
+end
+local BgMusic = CreateSound(CONFIG.MusicID, 0.4, true)
+local HoverSound = CreateSound("rbxassetid://6895086153", 0.5)
+local ClickSound = CreateSound("rbxassetid://6895079853", 0.5)
+
+--// MODULE: KÉO THẢ MƯỢT
+local function MakeDraggable(gui)
+    local dragging, dragInput, dragStart, startPos
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+        end
+    end)
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            TweenService:Create(gui, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            }):Play()
+        end
+    end)
+    gui.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+            dragInput = nil
         end
     end)
 end
 
--- ==================== SEA & RACE DETECTION ====================
-local CurrentSea = "Unknown"
-function DetectSea()
-    pcall(function()
-        local placeId = game.PlaceId
-        if placeId == 2753915549 then CurrentSea = "Sea 1"
-        elseif placeId == 4442272183 then CurrentSea = "Sea 2"
-        elseif placeId == 7449423635 then CurrentSea = "Sea 3"
-        elseif Workspace:FindFirstChild("HydraIsland") or Workspace:FindFirstChild("GreatTree") then CurrentSea = "Sea 3"
-        elseif Workspace:FindFirstChild("KingdomOfRose") or Workspace:FindFirstChild("GreenZone") then CurrentSea = "Sea 2"
-        elseif Workspace:FindFirstChild("StartIsland") then CurrentSea = "Sea 1"
-        end
-    end)
-    return CurrentSea
-end
-
-local PlayerRace = "Unknown"
-local PlayerRaceVersion = "Unknown"
-function CheckCurrentRace()
-    pcall(function()
-        local c = LP.Character
-        if c then
-            if c:FindFirstChild("CyborgParts") then PlayerRace = "Cyborg"
-            elseif c:FindFirstChild("GhoulMask") then PlayerRace = "Ghoul"
-            elseif c:FindFirstChild("Wings") then PlayerRace = "Angel"
-            elseif c:FindFirstChild("Tail") then PlayerRace = "Shark"
-            elseif c:FindFirstChild("BunnyEars") then PlayerRace = "Rabbit"
-            else PlayerRace = "Human" end
-        end
-        if RaceV3Completed then PlayerRaceVersion = "V3"
-        elseif RaceV2Completed then PlayerRaceVersion = "V2"
-        else PlayerRaceVersion = "V1" end
-    end)
-    return PlayerRace, PlayerRaceVersion
-end
-
--- ==================== AUTO FARM ====================
-local AutoFarmEnabled = false
-local FastHitEnabled = false
-local AutoBossEnabled = false
-local AutoSkillsEnabled = false
-
-local BossList = {
-    ["Sea 1"] = {"The Gorilla King", "Bobby", "Yeti", "Mob Leader", "Vice Admiral", "Warden", "Chief Warden", "Swan", "Magma Admiral", "Fishman Lord"},
-    ["Sea 2"] = {"Diamond", "Jeremy", "Fajita", "Don Swan", "Smoke Admiral", "Awakened Ice Admiral", "Tide Keeper", "Darkbeard", "Cursed Captain"},
-    ["Sea 3"] = {"Stone", "Island Empress", "Kilo Admiral", "Captain Elephant", "Beautiful Pirate", "Longma", "Soul Reaper", "Cake Queen", "Rip Indra"}
-}
-
-local SkillsList = {"Z", "X", "C", "V", "F", "T"}
-local SkillCooldowns = {Z = 5, X = 8, C = 10, V = 15, F = 12, T = 30}
-local LastSkillUse = {}
-
-local function FindBestWeapon()
-    for _, t in ipairs(LP.Backpack:GetChildren()) do
-        if t:IsA("Tool") and t:FindFirstChild("Handle") then return t end
-    end
-    return nil
-end
-
-local function HasWeapon(character)
-    for _, t in ipairs(character:GetChildren()) do
-        if t:IsA("Tool") and t:FindFirstChild("Handle") then return t end
-    end
-    return nil
-end
-
-local function AutoFarm()
-    spawn(function()
-        while AutoFarmEnabled do
-            task.wait(FastHitEnabled and 0.01 or 0.1)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                local hum = c:FindFirstChildOfClass("Humanoid")
-                if not root or not hum or hum.Health <= 0 then return end
-                
-                if not HasWeapon(c) then
-                    local w = FindBestWeapon()
-                    if w then hum:EquipTool(w) end
-                end
-                
-                local nearest = nil
-                local nearestDist = 200
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                        local eh = obj:FindFirstChildOfClass("Humanoid")
-                        local er = obj:FindFirstChild("HumanoidRootPart")
-                        if eh and er and eh.Health > 0 and obj ~= c and not Players:GetPlayerFromCharacter(obj) then
-                            local isBoss = false
-                            for _, bossName in ipairs(BossList[DetectSea()] or {}) do
-                                if obj.Name == bossName then isBoss = true; break end
-                            end
-                            if not AutoBossEnabled or isBoss then
-                                local dist = (root.Position - er.Position).Magnitude
-                                if dist < nearestDist then
-                                    nearestDist = dist
-                                    nearest = obj
-                                end
-                            end
-                        end
-                    end
-                end
-                
-                if nearest then
-                    local er = nearest:FindFirstChild("HumanoidRootPart")
-                    local eh = nearest:FindFirstChildOfClass("Humanoid")
-                    if er and eh and eh.Health > 0 then
-                        root.CFrame = er.CFrame * CFrame.new(0, FarmHeight, 0)
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton1(Vector2.new())
-                        if FastHitEnabled and eh.Health > 50 then
-                            eh.Health = math.max(0, eh.Health - 15)
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-end
-
-local function AutoSkills()
-    spawn(function()
-        while AutoSkillsEnabled do
-            task.wait(0.3)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local hum = c:FindFirstChildOfClass("Humanoid")
-                if not hum or hum.Health <= 0 then return end
-                
-                for _, key in ipairs(SkillsList) do
-                    if not AutoSkillsEnabled then break end
-                    local ct = tick()
-                    if ct - (LastSkillUse[key] or 0) >= (SkillCooldowns[key] or 5) then
-                        local kc = Enum.KeyCode[key]
-                        if kc then
-                            VIM:SendKeyEvent(true, kc, false, game)
-                            task.wait(0.1)
-                            VIM:SendKeyEvent(false, kc, false, game)
-                            LastSkillUse[key] = ct
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ==================== AUTO RAID & DUNGEON ====================
-local AutoRaidEnabled = false
-local AutoDungeonEnabled = false
-
-local function AutoRaid()
-    spawn(function()
-        while AutoRaidEnabled do
-            task.wait(10)
-            pcall(function()
-                local c = LP.Character
-                if c and c:FindFirstChild("HumanoidRootPart") then
-                    local root = c:FindFirstChild("HumanoidRootPart")
-                    
-                    if CurrentSea == "Sea 1" then root.CFrame = CFrame.new(-4900, 50, -400)
-                    elseif CurrentSea == "Sea 2" then root.CFrame = CFrame.new(-5900, 10, -1800)
-                    else root.CFrame = CFrame.new(-5000, 200, -500) end
-                    task.wait(2)
-                    
-                    for _, npc in ipairs(Workspace:GetDescendants()) do
-                        if npc:IsA("Model") and npc.Name:lower():find("scientist") then
-                            local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                            if head then root.CFrame = head.CFrame * CFrame.new(0, 3, 4) end
-                            task.wait(1)
-                            local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                            if prompt then fireproximityprompt(prompt) end
-                            break
-                        end
-                    end
-                end
-            end)
-            task.wait(30)
-        end
-    end)
-end
-
-local function AutoDungeon()
-    spawn(function()
-        while AutoDungeonEnabled do
-            task.wait(10)
-            pcall(function()
-                local c = LP.Character
-                if c and c:FindFirstChild("HumanoidRootPart") then
-                    local root = c:FindFirstChild("HumanoidRootPart")
-                    
-                    if CurrentSea == "Sea 1" then root.CFrame = CFrame.new(-1800, 150, -5200)
-                    elseif CurrentSea == "Sea 2" then root.CFrame = CFrame.new(-6100, 20, -1900)
-                    else root.CFrame = CFrame.new(-4000, 350, -400) end
-                    task.wait(2)
-                    
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and obj ~= c and not Players:GetPlayerFromCharacter(obj) then
-                            local eh = obj:FindFirstChildOfClass("Humanoid")
-                            local er = obj:FindFirstChild("HumanoidRootPart")
-                            if eh and er and eh.Health > 0 then
-                                root.CFrame = er.CFrame * CFrame.new(0, FarmHeight, 0)
-                                eh.Health = math.max(0, eh.Health - 80)
-                                task.wait(0.08)
-                            end
-                        end
-                    end
-                end
-            end)
-            task.wait(30)
-        end
-    end)
-end
-
--- ==================== FIND NEAREST ENEMY HELPER ====================
-local function FindNearestEnemyForRace(pos, range)
-    local nearest, nearestDist = nil, range
-    pcall(function()
-        local c = LP.Character
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                local hum = obj:FindFirstChildOfClass("Humanoid")
-                local objRoot = obj:FindFirstChild("HumanoidRootPart")
-                if hum and objRoot and hum.Health > 0 and obj ~= c and not Players:GetPlayerFromCharacter(obj) then
-                    local dist = (pos - objRoot.Position).Magnitude
-                    if dist < nearestDist then
-                        nearestDist = dist
-                        nearest = obj
-                    end
-                end
-            end
-        end
-    end)
-    return nearest
-end
-
--- ==================== AUTO RACE V2 (ALCHEMIST) ====================
-local AutoRaceV2Enabled = false
-local BlueFlowerCollected = false
-local RedFlowerCollected = false
-local YellowFlowerCollected = false
-local RaceV2Completed = false
-
-local AlchemistPos = CFrame.new(-1000, 50, -6500)
-
-local FlowerPositions = {
-    ["Blue"] = CFrame.new(-2800, 50, -5600),
-    ["Red"] = CFrame.new(-1200, 50, -6200),
-    ["Yellow"] = CFrame.new(-1500, 50, -6000)
-}
-
-local function GetCurrentTime()
-    local currentTime = Lighting:GetMinutesAfterMidnight()
-    local hour = math.floor(currentTime / 60)
-    return hour >= 6 and hour < 18 and "Day" or "Night"
-end
-
-local function CollectBlueFlower()
-    if BlueFlowerCollected then return true end
-    if GetCurrentTime() ~= "Night" then return false end
+--// MODULE: THÔNG BÁO
+local function SendNotification(title, text, duration)
+    local NotifFrame = Instance.new("Frame", ScreenGui)
+    NotifFrame.Size = UDim2.new(0, 280, 0, 70)
+    NotifFrame.Position = UDim2.new(1, 10, 0.85, 0)
+    NotifFrame.BackgroundColor3 = CONFIG.SecondaryColor
+    NotifFrame.ZIndex = 10
     
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        root.CFrame = FlowerPositions["Blue"]
-        task.wait(3)
-        
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Tool") and obj.Name:lower():find("blue") and obj.Name:lower():find("flower") then
-                local handle = obj:FindFirstChild("Handle")
-                if handle then
-                    root.CFrame = handle.CFrame * CFrame.new(0, 5, 0)
-                    firetouchinterest(root, handle, 0)
-                    task.wait(0.1)
-                    firetouchinterest(root, handle, 1)
-                    BlueFlowerCollected = true
-                    print("🔵 Đã nhặt Hoa Xanh!")
-                    return true
-                end
-            end
-        end
-    end)
-    return false
-end
-
-local function CollectRedFlower()
-    if RedFlowerCollected then return true end
-    if GetCurrentTime() ~= "Day" then return false end
+    Instance.new("UICorner", NotifFrame).CornerRadius = UDim.new(0, 8)
     
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        root.CFrame = FlowerPositions["Red"]
-        task.wait(3)
-        
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Tool") and obj.Name:lower():find("red") and obj.Name:lower():find("flower") then
-                local handle = obj:FindFirstChild("Handle")
-                if handle then
-                    root.CFrame = handle.CFrame * CFrame.new(0, 5, 0)
-                    firetouchinterest(root, handle, 0)
-                    task.wait(0.1)
-                    firetouchinterest(root, handle, 1)
-                    RedFlowerCollected = true
-                    print("🔴 Đã nhặt Hoa Đỏ!")
-                    return true
-                end
-            end
-        end
-    end)
-    return false
-end
+    local Stroke = Instance.new("UIStroke", NotifFrame)
+    Stroke.Color = CONFIG.MainColor
+    Stroke.Thickness = 1.5
 
-local function CollectYellowFlower()
-    if YellowFlowerCollected then return true end
-    
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        local attempts = 0
-        while attempts < 50 do
-            local enemy = FindNearestEnemyForRace(root.Position, 200)
-            if enemy then
-                local er = enemy:FindFirstChild("HumanoidRootPart")
-                local eh = enemy:FindFirstChildOfClass("Humanoid")
-                if er and eh and eh.Health > 0 then
-                    root.CFrame = er.CFrame * CFrame.new(0, 35, 0)
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new())
-                    eh.Health = 0
-                    task.wait(0.1)
-                end
-            end
-            
-            for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj:IsA("Tool") and obj.Name:lower():find("yellow") and obj.Name:lower():find("flower") then
-                    local handle = obj:FindFirstChild("Handle")
-                    if handle and (root.Position - handle.Position).Magnitude < 20 then
-                        firetouchinterest(root, handle, 0)
-                        task.wait(0.1)
-                        firetouchinterest(root, handle, 1)
-                        YellowFlowerCollected = true
-                        print("🟡 Đã nhặt Hoa Vàng!")
-                        return true
-                    end
-                end
-            end
-            attempts = attempts + 1
-            task.wait(0.5)
-        end
-    end)
-    return false
-end
+    local TitleLabel = Instance.new("TextLabel", NotifFrame)
+    TitleLabel.Size = UDim2.new(1, -20, 0, 30)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 5)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = "🍌 " .. title
+    TitleLabel.TextColor3 = CONFIG.MainColor
+    TitleLabel.Font = CONFIG.FontBold
+    TitleLabel.TextSize = 16
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-local function RaceV2Upgrade()
-    spawn(function()
-        while AutoRaceV2Enabled and not RaceV2Completed do
-            task.wait(5)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                
-                CheckCurrentRace()
-                
-                if PlayerRaceVersion ~= "V1" then
-                    AutoRaceV2Enabled = false
-                    RaceV2Completed = true
-                    return
-                end
-                
-                root.CFrame = AlchemistPos
-                task.wait(3)
-                
-                local alchemistFound = false
-                for _, npc in ipairs(Workspace:GetDescendants()) do
-                    if npc:IsA("Model") and npc.Name:lower():find("alchemist") then
-                        local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                        if head then
-                            root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                            task.wait(1)
-                            local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                            if prompt then
-                                fireproximityprompt(prompt)
-                                task.wait(2)
-                                alchemistFound = true
-                            end
-                        end
-                        break
-                    end
-                end
-                
-                if not alchemistFound then return end
-                
-                while not BlueFlowerCollected do
-                    CollectBlueFlower()
-                    if not BlueFlowerCollected then task.wait(10) end
-                end
-                
-                while not RedFlowerCollected do
-                    CollectRedFlower()
-                    if not RedFlowerCollected then task.wait(10) end
-                end
-                
-                while not YellowFlowerCollected do
-                    CollectYellowFlower()
-                    task.wait(3)
-                end
-                
-                root.CFrame = AlchemistPos
-                task.wait(3)
-                
-                for _, npc in ipairs(Workspace:GetDescendants()) do
-                    if npc:IsA("Model") and npc.Name:lower():find("alchemist") then
-                        local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                        if head then
-                            root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                            task.wait(1)
-                            local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                            if prompt then
-                                fireproximityprompt(prompt)
-                                task.wait(2)
-                                RaceV2Completed = true
-                                PlayerRaceVersion = "V2"
-                                AutoRaceV2Enabled = false
-                                print("🎉 ĐÃ NÂNG CẤP LÊN V2!")
-                            end
-                        end
-                        break
-                    end
-                end
-            end)
-            task.wait(30)
-        end
+    local Msg = Instance.new("TextLabel", NotifFrame)
+    Msg.Size = UDim2.new(1, -20, 0, 30)
+    Msg.Position = UDim2.new(0, 10, 0, 30)
+    Msg.BackgroundTransparency = 1
+    Msg.Text = text
+    Msg.TextColor3 = Color3.new(0.9, 0.9, 0.8)
+    Msg.Font = CONFIG.FontMain
+    Msg.TextSize = 14
+    Msg.TextXAlignment = Enum.TextXAlignment.Left
+    Msg.TextWrapped = true
+
+    NotifFrame:TweenPosition(UDim2.new(1, -290, 0.85, 0), "Out", "Quad", 0.5, true)
+    task.delay(duration or 3, function()
+        NotifFrame:TweenPosition(UDim2.new(1, 10, 0.85, 0), "In", "Quad", 0.5, true)
+        task.wait(0.5)
+        NotifFrame:Destroy()
     end)
 end
 
--- ==================== AUTO RACE V3 (AROWE) ====================
-local AutoRaceV3Enabled = false
-local RaceV3QuestStarted = false
-local RaceV3Completed = false
+--// MODULE: TẢI GIAO DIỆN
+local function StartLoading(callback)
+    local Blur = Instance.new("BlurEffect", Lighting)
+    Blur.Size = 0
+    TweenService:Create(Blur, TweenInfo.new(1), {Size = 20}):Play()
 
-local ArowePos = CFrame.new(-2600, 30, -4500)
+    local LoadFrame = Instance.new("Frame", ScreenGui)
+    LoadFrame.Size = UDim2.new(1, 0, 1, 0)
+    LoadFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    LoadFrame.BackgroundTransparency = 1
+    LoadFrame.ZIndex = 10
+    TweenService:Create(LoadFrame, TweenInfo.new(0.5), {BackgroundTransparency = 0.5}):Play()
 
-local HumanV3Bosses = {
-    {name = "Diamond", pos = CFrame.new(-3000, 50, -3500)},
-    {name = "Jeremy", pos = CFrame.new(-4000, 50, -3000)},
-    {name = "Fajita", pos = CFrame.new(-3500, 50, -4000)}
-}
+    local Center = Instance.new("Frame", LoadFrame)
+    Center.Size = UDim2.new(0, 400, 0, 200)
+    Center.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Center.AnchorPoint = Vector2.new(0.5, 0.5)
+    Center.BackgroundTransparency = 1
 
-local function KillBossForV3(bossName, bossPos)
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        root.CFrame = bossPos
-        task.wait(2)
-        
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name == bossName and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                local eh = obj:FindFirstChildOfClass("Humanoid")
-                local er = obj:FindFirstChild("HumanoidRootPart")
-                if eh and er and eh.Health > 0 then
-                    while eh.Health > 0 do
-                        root.CFrame = er.CFrame * CFrame.new(0, 10, 0)
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton1(Vector2.new())
-                        eh.Health = math.max(0, eh.Health - 30)
-                        task.wait(0.05)
-                    end
-                    return true
-                end
-            end
-        end
-    end)
-    return false
-end
-
-local function RaceV3Upgrade()
-    spawn(function()
-        while AutoRaceV3Enabled and not RaceV3Completed do
-            task.wait(5)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                
-                CheckCurrentRace()
-                
-                if PlayerRaceVersion == "V3" then
-                    AutoRaceV3Enabled = false
-                    RaceV3Completed = true
-                    return
-                end
-                
-                root.CFrame = ArowePos
-                task.wait(3)
-                
-                local aroweNPC = nil
-                for _, npc in ipairs(Workspace:GetDescendants()) do
-                    if npc:IsA("Model") and (npc.Name:lower():find("arowe") or npc.Name:lower():find("aaro")) then
-                        aroweNPC = npc
-                        local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                        if head then
-                            root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                            task.wait(1)
-                            local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                            if prompt then
-                                fireproximityprompt(prompt)
-                                task.wait(2)
-                                RaceV3QuestStarted = true
-                            end
-                        end
-                        break
-                    end
-                end
-                
-                if not aroweNPC then return end
-                
-                -- Quest theo tộc
-                if PlayerRace == "Human" then
-                    for _, boss in ipairs(HumanV3Bosses) do
-                        KillBossForV3(boss.name, boss.pos)
-                        task.wait(2)
-                    end
-                elseif PlayerRace == "Angel" then
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LP and player.Character and player.Character:FindFirstChild("Wings") then
-                            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                            if targetRoot then
-                                root.CFrame = targetRoot.CFrame * CFrame.new(0, 5, 0)
-                                VirtualUser:CaptureController()
-                                VirtualUser:ClickButton1(Vector2.new())
-                                task.wait(0.5)
-                                break
-                            end
-                        end
-                    end
-                elseif PlayerRace == "Rabbit" then
-                    for i = 1, 30 do
-                        for _, chest in ipairs(Workspace:GetDescendants()) do
-                            if chest:IsA("Model") and chest.Name:lower():find("chest") then
-                                local chestPart = chest:FindFirstChildWhichIsA("BasePart")
-                                if chestPart then
-                                    root.CFrame = chestPart.CFrame * CFrame.new(0, 3, 0)
-                                    local prompt = chest:FindFirstChildOfClass("ProximityPrompt")
-                                    if prompt then fireproximityprompt(prompt) end
-                                    task.wait(0.1)
-                                    break
-                                end
-                            end
-                        end
-                        task.wait(0.5)
-                    end
-                elseif PlayerRace == "Shark" then
-                    root.CFrame = CFrame.new(-5000, 10, 5000)
-                    task.wait(5)
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj.Name:lower():find("sea") and obj.Name:lower():find("beast") and obj:FindFirstChildOfClass("Humanoid") then
-                            local lr = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
-                            if lr then
-                                root.CFrame = lr.CFrame * CFrame.new(0, 40, 0)
-                                obj:FindFirstChildOfClass("Humanoid").Health = 0
-                                break
-                            end
-                        end
-                    end
-                elseif PlayerRace == "Ghoul" then
-                    local killCount = 0
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and killCount < 5 then
-                            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                            root.CFrame = targetRoot.CFrame * CFrame.new(0, 5, 0)
-                            VirtualUser:CaptureController()
-                            VirtualUser:ClickButton1(Vector2.new())
-                            killCount = killCount + 1
-                            task.wait(1)
-                        end
-                    end
-                elseif PlayerRace == "Cyborg" then
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Tool") and obj.Name:lower():find("fruit") then
-                            local handle = obj:FindFirstChild("Handle")
-                            if handle then
-                                root.CFrame = handle.CFrame * CFrame.new(0, 3, 0)
-                                firetouchinterest(root, handle, 0)
-                                task.wait(0.1)
-                                firetouchinterest(root, handle, 1)
-                                break
-                            end
-                        end
-                    end
-                end
-                
-                root.CFrame = ArowePos
-                task.wait(3)
-                
-                if aroweNPC then
-                    local head = aroweNPC:FindFirstChild("Head") or aroweNPC:FindFirstChild("HumanoidRootPart")
-                    if head then
-                        root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                        task.wait(1)
-                        local prompt = aroweNPC:FindFirstChildOfClass("ProximityPrompt")
-                        if prompt then
-                            fireproximityprompt(prompt)
-                            task.wait(2)
-                            RaceV3Completed = true
-                            PlayerRaceVersion = "V3"
-                            AutoRaceV3Enabled = false
-                            print("🎉 ĐÃ NÂNG CẤP LÊN V3!")
-                        end
-                    end
-                end
-            end)
-            task.wait(30)
-        end
-    end)
-end
-
--- ==================== HAKI 7 MÀU SYSTEM ====================
-local AutoHakiQuest = false
-local HakiQuestStarted = false
-local HakiQuestCompleted = false
-local RainbowHakiUnlocked = false
-local CurrentQuestBoss = 1
-local BossKillCount = 0
-local AllBossesKilled = false
-
-local HakiBosses = {
-    [1] = {name = "Stone", killed = false, position = CFrame.new(-3000, 200, -4000)},
-    [2] = {name = "Hydra Leader", killed = false, position = CFrame.new(-4500, 300, -3500)},
-    [3] = {name = "Kilo Admiral", killed = false, position = CFrame.new(-5500, 200, -2000)},
-    [4] = {name = "Captain Elephant", killed = false, position = CFrame.new(-3500, 250, -5000)},
-    [5] = {name = "Beautiful Pirate", killed = false, position = CFrame.new(-4000, 200, -3000)}
-}
-
-local function TalkToHornedMan()
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        for _, npc in ipairs(Workspace:GetDescendants()) do
-            if npc:IsA("Model") and (npc.Name:lower():find("horned") or npc.Name:lower():find("horn")) then
-                local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                if head then
-                    root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                    task.wait(1)
-                    local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        fireproximityprompt(prompt)
-                        task.wait(2)
-                        HakiQuestStarted = true
-                        return true
-                    end
-                end
-            end
-        end
-        
-        root.CFrame = CFrame.new(-5000, 300, -6000)
-        task.wait(3)
-        
-        for _, npc in ipairs(Workspace:GetDescendants()) do
-            if npc:IsA("Model") and npc.Name:lower():find("horned") then
-                local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                if head then
-                    root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                    task.wait(1)
-                    local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        fireproximityprompt(prompt)
-                        task.wait(2)
-                        HakiQuestStarted = true
-                        return true
-                    end
-                end
-            end
-        end
-    end)
-    return false
-end
-
-local function KillHakiBoss(bossNumber)
-    local bossData = HakiBosses[bossNumber]
-    if not bossData then return end
-    
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        root.CFrame = bossData.position
-        task.wait(2)
-        
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name == bossData.name and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                local eh = obj:FindFirstChildOfClass("Humanoid")
-                local er = obj:FindFirstChild("HumanoidRootPart")
-                if eh and er and eh.Health > 0 then
-                    while eh.Health > 0 do
-                        root.CFrame = er.CFrame * CFrame.new(0, 10, 0)
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton1(Vector2.new())
-                        eh.Health = math.max(0, eh.Health - 30)
-                        task.wait(0.05)
-                    end
-                    HakiBosses[bossNumber].killed = true
-                    BossKillCount = BossKillCount + 1
-                    break
-                end
-            end
-        end
-    end)
-end
-
-local function TalkToBarista()
-    pcall(function()
-        local c = LP.Character
-        if not c then return end
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        for _, npc in ipairs(Workspace:GetDescendants()) do
-            if npc:IsA("Model") and npc.Name:lower():find("barista") then
-                local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                if head then
-                    root.CFrame = head.CFrame * CFrame.new(0, 5, 3)
-                    task.wait(1)
-                    local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        fireproximityprompt(prompt)
-                        task.wait(2)
-                        RainbowHakiUnlocked = true
-                        HakiQuestCompleted = true
-                        return true
-                    end
-                end
-            end
-        end
-    end)
-    return false
-end
-
-local function HakiQuestManager()
-    spawn(function()
-        while AutoHakiQuest and not HakiQuestCompleted do
-            task.wait(5)
-            pcall(function()
-                if not HakiQuestStarted then
-                    TalkToHornedMan()
-                    return
-                end
-                
-                if HakiQuestStarted and not AllBossesKilled then
-                    for i = 1, 5 do
-                        if not HakiBosses[i].killed then
-                            CurrentQuestBoss = i
-                            KillHakiBoss(i)
-                            task.wait(3)
-                        end
-                    end
-                    
-                    AllBossesKilled = true
-                    for i = 1, 5 do
-                        if not HakiBosses[i].killed then
-                            AllBossesKilled = false
-                            break
-                        end
-                    end
-                end
-                
-                if AllBossesKilled and not RainbowHakiUnlocked then
-                    TalkToBarista()
-                end
-            end)
-            task.wait(10)
-        end
-    end)
-end
-
--- ==================== FARM BERRY ====================
-local AutoFarmBerryEnabled = false
-local BerryCount = 0
-
-local function FarmBerry()
-    spawn(function()
-        while AutoFarmBerryEnabled do
-            task.wait(2)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                
-                local berryIslands = {"HydraIsland", "GreatTree", "FloatingTurtle", "CastleOnTheSea", "PortTown"}
-                
-                for _, islandName in ipairs(berryIslands) do
-                    local island = Workspace:FindFirstChild(islandName)
-                    if island then
-                        for _, obj in ipairs(island:GetDescendants()) do
-                            if obj:IsA("Tool") and obj.Name:lower():find("berry") then
-                                local handle = obj:FindFirstChild("Handle")
-                                if handle then
-                                    root.CFrame = handle.CFrame * CFrame.new(0, 3, 0)
-                                    firetouchinterest(root, handle, 0)
-                                    task.wait(0.1)
-                                    firetouchinterest(root, handle, 1)
-                                    BerryCount = BerryCount + 1
-                                    task.wait(0.5)
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ==================== AUTO ISLANDS ====================
-local AutoMysteryIsland = false
-local AutoKitsuneIsland = false
-local AutoPrehistoricIsland = false
-local AutoLeviathan = false
-
-local function AutoIsland(islandType)
-    spawn(function()
-        local findFunc
-        if islandType == "Mystery" then
-            findFunc = function()
-                local list = {}
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and (obj.Name:lower():find("mystery") or obj.Name:lower():find("haunted")) then
-                        table.insert(list, obj)
-                    end
-                end
-                return list
-            end
-        elseif islandType == "Kitsune" then
-            findFunc = function()
-                local list = {}
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj.Name:lower():find("kitsune") then
-                        table.insert(list, obj)
-                    end
-                end
-                return list
-            end
-        elseif islandType == "Prehistoric" then
-            findFunc = function()
-                local list = {}
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj.Name:lower():find("prehistoric") then
-                        table.insert(list, obj)
-                    end
-                end
-                return list
-            end
-        else return end
-        
-        while (islandType == "Mystery" and AutoMysteryIsland) or (islandType == "Kitsune" and AutoKitsuneIsland) or (islandType == "Prehistoric" and AutoPrehistoricIsland) do
-            task.wait(10)
-            pcall(function()
-                local c = LP.Character
-                if c and c:FindFirstChild("HumanoidRootPart") then
-                    local root = c:FindFirstChild("HumanoidRootPart")
-                    local islands = findFunc()
-                    if #islands > 0 then
-                        local part = islands[1]:FindFirstChildWhichIsA("BasePart")
-                        if part then root.CFrame = part.CFrame * CFrame.new(0, 15, 0) end
-                    end
-                end
-            end)
-        end
-    end)
-end
-
-local function LeviathanFarm()
-    spawn(function()
-        while AutoLeviathan do
-            task.wait(10)
-            pcall(function()
-                local c = LP.Character
-                if c and c:FindFirstChild("HumanoidRootPart") then
-                    local root = c:FindFirstChild("HumanoidRootPart")
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj.Name:lower():find("levi") and obj:FindFirstChildOfClass("Humanoid") then
-                            local lr = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
-                            if lr then
-                                root.CFrame = lr.CFrame * CFrame.new(0, 40, 0)
-                                obj:FindFirstChildOfClass("Humanoid").Health = math.max(0, obj:FindFirstChildOfClass("Humanoid").Health - 100)
-                            end
-                            break
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ==================== AUTO MOON GAZE + BLUE GEAR ====================
-local AutoMoonGaze = false
-local AutoBlueGear = false
-local BlueGearCollected = false
-local MirageFound = false
-local MoonGazeCompleted = false
-
-local MirageSpawnPositions = {
-    CFrame.new(-5000, 10, 5000),
-    CFrame.new(-3000, 10, 8000),
-    CFrame.new(-7000, 10, 6000),
-    CFrame.new(-4000, 10, 10000),
-    CFrame.new(-6000, 10, 12000),
-}
-
-local function IsNightTime()
-    local currentTime = Lighting:GetMinutesAfterMidnight()
-    local hour = math.floor(currentTime / 60)
-    return hour >= 18 or hour < 6
-end
-
-local function MoonGaze()
-    spawn(function()
-        while AutoMoonGaze do
-            task.wait(5)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                
-                if not IsNightTime() then
-                    print("☀️ Chưa phải đêm! Đợi...")
-                    task.wait(10)
-                    return
-                end
-                
-                local mirageIsland = nil
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj.Name:lower():find("mirage") then
-                        mirageIsland = obj
-                        MirageFound = true
-                        break
-                    end
-                end
-                
-                if not mirageIsland then
-                    local randomPos = MirageSpawnPositions[math.random(1, #MirageSpawnPositions)]
-                    root.CFrame = randomPos
-                    task.wait(5)
-                end
-                
-                if MirageFound and mirageIsland then
-                    local highestPart, highestY = nil, -999
-                    for _, part in ipairs(mirageIsland:GetDescendants()) do
-                        if part:IsA("BasePart") and part.Position.Y > highestY then
-                            highestY = part.Position.Y
-                            highestPart = part
-                        end
-                    end
-                    
-                    if highestPart then
-                        root.CFrame = highestPart.CFrame * CFrame.new(0, 10, 0)
-                        task.wait(2)
-                        
-                        VIM:SendKeyEvent(true, Enum.KeyCode.T, false, game)
-                        task.wait(0.1)
-                        VIM:SendKeyEvent(false, Enum.KeyCode.T, false, game)
-                        
-                        local gazeTime = 0
-                        while gazeTime < 15 and AutoMoonGaze do
-                            task.wait(1)
-                            gazeTime = gazeTime + 1
-                        end
-                        
-                        MoonGazeCompleted = true
-                        if not AutoBlueGear then
-                            AutoBlueGear = true
-                            BlueGearCollector()
-                        end
-                    end
-                end
-            end)
-            task.wait(30)
-        end
-    end)
-end
-
-local function BlueGearCollector()
-    spawn(function()
-        while AutoBlueGear do
-            task.wait(3)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                
-                if BlueGearCollected then
-                    AutoBlueGear = false
-                    return
-                end
-                
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if (obj:IsA("Tool") or obj:IsA("BasePart")) and obj.Name:lower():find("blue") and obj.Name:lower():find("gear") then
-                        local handle = obj:IsA("Tool") and obj:FindFirstChild("Handle") or obj
-                        root.CFrame = handle.CFrame * CFrame.new(0, 3, 0)
-                        firetouchinterest(root, handle, 0)
-                        task.wait(0.1)
-                        firetouchinterest(root, handle, 1)
-                        BlueGearCollected = true
-                        print("✅ Đã nhặt Blue Gear!")
-                        break
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ==================== STACK FARMING ====================
-local AutoStackFarm = false
-local function StackFarm()
-    spawn(function()
-        while AutoStackFarm do
-            task.wait(5)
-            pcall(function()
-                local c = LP.Character
-                if not c then return end
-                local root = c:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-                
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                        root.CFrame = targetRoot.CFrame * CFrame.new(0, FarmHeight, 0)
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton1(Vector2.new())
-                        task.wait(0.05)
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ==================== UI ====================
-local isUIOpen = true
-
-local function CreateUI()
-    if CoreGui:FindFirstChild("BananaHub") then CoreGui:FindFirstChild("BananaHub"):Destroy() end
-    
-    local BananaGui = Instance.new("ScreenGui")
-    BananaGui.Name = "BananaHub"
-    BananaGui.Parent = CoreGui
-    BananaGui.ResetOnSpawn = false
-    
-    local Main = Instance.new("Frame")
-    Main.Name = "Main"
-    Main.Parent = BananaGui
-    Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-    Main.BorderSizePixel = 0
-    Main.Position = UDim2.new(0.5, -310, 0.5, -250)
-    Main.Size = UDim2.new(0, 620, 0, 500)
-    Main.Active = true
-    Main.Visible = true
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-    
-    local Header = Instance.new("Frame")
-    Header.Name = "Header"
-    Header.Parent = Main
-    Header.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-    Header.BorderSizePixel = 0
-    Header.Size = UDim2.new(1, 0, 0, 50)
-    Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
-    
-    local Logo = Instance.new("Frame")
-    Logo.Name = "Logo"
-    Logo.Parent = Header
-    Logo.BackgroundColor3 = Color3.fromRGB(255, 180, 30)
-    Logo.BorderSizePixel = 0
-    Logo.Size = UDim2.new(0, 34, 0, 34)
-    Logo.Position = UDim2.new(0, 12, 0.5, -17)
-    Instance.new("UICorner", Logo).CornerRadius = UDim.new(0, 8)
-    
-    local LogoText = Instance.new("TextLabel")
-    LogoText.Parent = Logo
-    LogoText.Text = "B"
-    LogoText.TextColor3 = Color3.fromRGB(0, 0, 0)
-    LogoText.BackgroundTransparency = 1
-    LogoText.Size = UDim2.new(1, 0, 1, 0)
-    LogoText.Font = Enum.Font.SourceSansBold
-    LogoText.TextSize = 18
-    
-    local Title = Instance.new("TextLabel")
-    Title.Parent = Header
-    Title.Text = "Banana Cat Hub - Blox Fruit"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    local Title = Instance.new("TextLabel", Center)
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.Text = "🍌 " .. CONFIG.LoadingText .. " 🍌"
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.Font = CONFIG.FontBold
+    Title.TextSize = 35
     Title.BackgroundTransparency = 1
-    Title.Size = UDim2.new(0, 250, 1, 0)
-    Title.Position = UDim2.new(0, 54, 0, 0)
-    Title.Font = Enum.Font.SourceSansBold
-    Title.TextSize = 15
+    
+    local UIGradient = Instance.new("UIGradient", Title)
+    UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, CONFIG.MainColor), ColorSequenceKeypoint.new(1, CONFIG.GradientColor)}
+
+    local SubTitle = Instance.new("TextLabel", Center)
+    SubTitle.Size = UDim2.new(1, 0, 0, 30)
+    SubTitle.Position = UDim2.new(0, 0, 0, 45)
+    SubTitle.Text = "Được tạo bởi " .. CONFIG.Creator
+    SubTitle.TextColor3 = Color3.new(0.9, 0.9, 0.7)
+    SubTitle.Font = CONFIG.FontMain
+    SubTitle.TextSize = 18
+    SubTitle.BackgroundTransparency = 1
+
+    local BarBack = Instance.new("Frame", Center)
+    BarBack.Size = UDim2.new(0.8, 0, 0, 6)
+    BarBack.Position = UDim2.new(0.1, 0, 0.7, 0)
+    BarBack.BackgroundColor3 = Color3.fromRGB(40, 40, 0)
+    Instance.new("UICorner", BarBack).CornerRadius = UDim.new(1, 0)
+
+    local BarFill = Instance.new("Frame", BarBack)
+    BarFill.Size = UDim2.new(0, 0, 1, 0)
+    BarFill.BackgroundColor3 = CONFIG.MainColor
+    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+
+    local PercentText = Instance.new("TextLabel", Center)
+    PercentText.Size = UDim2.new(1, 0, 0, 30)
+    PercentText.Position = UDim2.new(0, 0, 0.8, 0)
+    PercentText.Text = "Đang tải... 0%"
+    PercentText.TextColor3 = Color3.new(1, 1, 1)
+    PercentText.Font = CONFIG.FontMain
+    PercentText.TextSize = 14
+    PercentText.BackgroundTransparency = 1
+
+    for i = 0, 100, math.random(3, 8) do
+        local percent = math.min(i, 100)
+        TweenService:Create(BarFill, TweenInfo.new(0.1), {Size = UDim2.new(percent/100, 0, 1, 0)}):Play()
+        PercentText.Text = "Đang tải dữ liệu... " .. percent .. "%"
+        task.wait(math.random(1, 3)/25)
+    end
+    
+    TweenService:Create(BarFill, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+    PercentText.Text = "Tải thành công!!"
+    task.wait(0.6)
+
+    TweenService:Create(Blur, TweenInfo.new(0.5), {Size = 0}):Play()
+    local closeTween = TweenService:Create(LoadFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1})
+    closeTween:Play()
+    
+    for _, v in pairs(Center:GetDescendants()) do
+        if v:IsA("TextLabel") then
+            TweenService:Create(v, TweenInfo.new(0.3), {TextTransparency = 1, BackgroundTransparency = 1}):Play()
+        elseif v:IsA("Frame") then
+            TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        end
+    end
+    
+    closeTween.Completed:Wait()
+    LoadFrame:Destroy()
+    Blur:Destroy()
+    callback()
+end
+
+--// MODULE: HIỆU ỨNG HẠT (Đổi thành hạt chuối bay lên)
+local function CreateParticles(parentFrame)
+    task.spawn(function()
+        while parentFrame.Parent and parentFrame.Visible do
+            local particle = Instance.new("Frame", parentFrame)
+            particle.BackgroundColor3 = CONFIG.MainColor
+            particle.Size = UDim2.new(0, math.random(2, 4), 0, math.random(2, 4))
+            particle.Position = UDim2.new(math.random(), 0, 1, 0)
+            particle.BackgroundTransparency = math.random(3, 7)/10
+            particle.ZIndex = 1
+            Instance.new("UICorner", particle).CornerRadius = UDim.new(1,0)
+            
+            local tween = TweenService:Create(particle, TweenInfo.new(math.random(3, 6), Enum.EasingStyle.Linear), {
+                Position = UDim2.new(particle.Position.X.Scale + math.random(-10, 10)/100, 0, -0.1, 0),
+                BackgroundTransparency = 1
+            })
+            tween:Play()
+            tween.Completed:Connect(function() particle:Destroy() end)
+            task.wait(math.random(1, 3)/10)
+        end
+    end)
+end
+
+--// MODULE: MENU CHÍNH (PHONG CÁCH BANANA - KHÔNG DISCORD)
+local function CreateMainMenu()
+    local isEffectsOn = true
+
+    -- 1. NÚT DI ĐỘNG NỔI (Biểu tượng chuối)
+    local MiniBtn = Instance.new("ImageButton", ScreenGui)
+    MiniBtn.Size = UDim2.new(0, 60, 0, 60)
+    MiniBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+    MiniBtn.Image = CONFIG.LogoID
+    MiniBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 100)
+    MiniBtn.Visible = false
+    MiniBtn.ZIndex = 10
+    Instance.new("UICorner", MiniBtn).CornerRadius = UDim.new(1, 0)
+    local MiniStroke = Instance.new("UIStroke", MiniBtn)
+    MiniStroke.Color = CONFIG.MainColor
+    MiniStroke.Thickness = 2
+    MakeDraggable(MiniBtn)
+
+    -- 2. KHUNG CHÍNH
+    local Frame = Instance.new("Frame", ScreenGui)
+    Frame.Size = UDim2.new(0, 0, 0, 0)
+    Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    Frame.BackgroundColor3 = CONFIG.SecondaryColor
+    Frame.ClipsDescendants = true
+    Frame.ZIndex = 5
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
+    MakeDraggable(Frame)
+
+    local FrameStroke = Instance.new("UIStroke", Frame)
+    FrameStroke.Color = CONFIG.MainColor
+    FrameStroke.Thickness = 2
+
+    local BG = Instance.new("ImageLabel", Frame)
+    BG.Size = UDim2.new(1, 0, 1, 0)
+    BG.BackgroundTransparency = 1
+    BG.BorderSizePixel = 0
+    BG.Image = CONFIG.BackgroundID
+    BG.ScaleType = Enum.ScaleType.Crop
+    BG.ZIndex = 0
+    
+    local Overlay = Instance.new("Frame", Frame)
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(40, 35, 0) -- Lớp phủ vàng đậm
+    Overlay.BackgroundTransparency = 0.4
+    Overlay.ZIndex = 1
+
+    -- THANH TRÊN CÙNG
+    local TopBar = Instance.new("Frame", Frame)
+    TopBar.Size = UDim2.new(1, 0, 0, 40)
+    TopBar.BackgroundTransparency = 1
+    TopBar.ZIndex = 2
+
+    local Title = Instance.new("TextLabel", TopBar)
+    Title.Size = UDim2.new(0.6, 0, 1, 0)
+    Title.Position = UDim2.new(0, 15, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = "🍌 " .. CONFIG.HubName
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.Font = CONFIG.FontBold
+    Title.TextSize = 18
     Title.TextXAlignment = Enum.TextXAlignment.Left
     
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Parent = Header
-    CloseBtn.Text = "X"
-    CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
-    CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Size = UDim2.new(0, 36, 0, 36)
-    CloseBtn.Position = UDim2.new(1, -42, 0.5, -18)
-    CloseBtn.Font = Enum.Font.SourceSansBold
-    CloseBtn.TextSize = 16
-    
-    local SearchFrame = Instance.new("Frame")
-    SearchFrame.Parent = Main
-    SearchFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
-    SearchFrame.BorderSizePixel = 0
-    SearchFrame.Position = UDim2.new(0, 10, 0, 58)
-    SearchFrame.Size = UDim2.new(1, -20, 0, 36)
-    Instance.new("UICorner", SearchFrame).CornerRadius = UDim.new(0, 8)
-    
-    local SearchBox = Instance.new("TextBox")
-    SearchBox.Parent = SearchFrame
-    SearchBox.PlaceholderText = "Search section or Fun"
-    SearchBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 110)
-    SearchBox.Text = ""
-    SearchBox.TextColor3 = Color3.fromRGB(200, 200, 210)
-    SearchBox.BackgroundTransparency = 1
-    SearchBox.Position = UDim2.new(0, 12, 0, 0)
-    SearchBox.Size = UDim2.new(1, -24, 1, 0)
-    SearchBox.Font = Enum.Font.SourceSans
-    SearchBox.TextSize = 13
-    SearchBox.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Parent = Main
-    Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
-    Sidebar.BorderSizePixel = 0
-    Sidebar.Position = UDim2.new(0, 0, 0, 102)
-    Sidebar.Size = UDim2.new(0, 180, 1, -102)
-    
-    local Content = Instance.new("ScrollingFrame")
-    Content.Parent = Main
-    Content.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-    Content.BorderSizePixel = 0
-    Content.Position = UDim2.new(0, 181, 0, 102)
-    Content.Size = UDim2.new(1, -181, 1, -102)
-    Content.CanvasSize = UDim2.new(0, 0, 0, 800)
-    Content.ScrollBarThickness = 4
-    Content.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 70)
-    
-    local sections = {
-        "Shop",
-        "Status And Server",
-        "LocalPlayer",
-        "Setting Farm",
-        "Farming",
-        "Race Upgrade",
-        "Stack Farming",
-        "Farming Other",
-        "Fruit and Raid",
-        "Haki 7 Mau (Rainbow)",
-        "Race V4 (Blue Gear)",
-        "Sea Event"
-    }
-    
-    local selected = "Setting Farm"
-    local sidebarBtns = {}
-    
-    for i, sec in ipairs(sections) do
-        local btn = Instance.new("TextButton")
-        btn.Parent = Sidebar
-        btn.Text = ""
-        btn.BackgroundColor3 = sec == selected and Color3.fromRGB(255, 180, 30) or Color3.fromRGB(20, 20, 26)
-        btn.BorderSizePixel = 0
-        btn.Size = UDim2.new(1, -6, 0, 36)
-        btn.Position = UDim2.new(0, 3, 0, 8 + (i-1) * 42)
-        btn.AutoButtonColor = false
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-        
-        local lbl = Instance.new("TextLabel")
-        lbl.Parent = btn
-        lbl.Text = "  " .. sec
-        lbl.TextColor3 = sec == selected and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(200, 200, 210)
-        lbl.BackgroundTransparency = 1
-        lbl.Size = UDim2.new(1, 0, 1, 0)
-        lbl.Font = Enum.Font.SourceSans
-        lbl.TextSize = 12
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        
-        table.insert(sidebarBtns, {btn = btn, sec = sec, lbl = lbl})
-        
-        btn.MouseButton1Click:Connect(function()
-            selected = sec
-            for _, sb in ipairs(sidebarBtns) do
-                local isSel = sb.sec == sec
-                sb.btn.BackgroundColor3 = isSel and Color3.fromRGB(255, 180, 30) or Color3.fromRGB(20, 20, 26)
-                sb.lbl.TextColor3 = isSel and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(200, 200, 210)
-            end
-            LoadContent(sec)
+    local TitleGradient = Instance.new("UIGradient", Title)
+    TitleGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, CONFIG.MainColor), ColorSequenceKeypoint.new(1, CONFIG.GradientColor)}
+
+    -- NÚT ĐIỀU KHIỂN
+    local function CreateTopBtn(text, posX, color)
+        local btn = Instance.new("TextButton", TopBar)
+        btn.Size = UDim2.new(0, 30, 0, 30)
+        btn.Position = UDim2.new(1, posX, 0.5, 0)
+        btn.AnchorPoint = Vector2.new(0, 0.5)
+        btn.BackgroundColor3 = color
+        btn.Text = text
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = CONFIG.FontBold
+        btn.TextSize = 14
+        btn.ZIndex = 3
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        return btn
+    end
+
+    local CloseBtn = CreateTopBtn("❌", -40, Color3.fromRGB(200, 50, 50))
+    local HideBtn = CreateTopBtn("➖", -75, Color3.fromRGB(80, 80, 10))
+    local FXBtn = CreateTopBtn("🍌", -110, CONFIG.MainColor)
+
+    -- LOGO & THỐNG KÊ
+    local Logo = Instance.new("ImageLabel", Frame)
+    Logo.Size = UDim2.new(0, 80, 0, 80)
+    Logo.Position = UDim2.new(0, 20, 0, 50)
+    Logo.Image = CONFIG.LogoID
+    Logo.ZIndex = 2
+    Instance.new("UICorner", Logo).CornerRadius = UDim.new(1, 0)
+    local LogoStroke = Instance.new("UIStroke", Logo)
+    LogoStroke.Color = CONFIG.MainColor
+    LogoStroke.Thickness = 2
+
+    local StatsContainer = Instance.new("Frame", Frame)
+    StatsContainer.Size = UDim2.new(0, 150, 0, 60)
+    StatsContainer.Position = UDim2.new(0, 115, 0, 60)
+    StatsContainer.BackgroundTransparency = 1
+    StatsContainer.ZIndex = 2
+
+    local TotalMem = Instance.new("TextLabel", StatsContainer)
+    TotalMem.Size = UDim2.new(1, 0, 0.5, 0)
+    TotalMem.BackgroundTransparency = 1
+    TotalMem.Text = "👥 Thành viên: <font color='rgb(255, 225, 0)'><b>" .. CONFIG.TotalMembers .. "</b></font>"
+    TotalMem.RichText = true
+    TotalMem.TextColor3 = Color3.fromRGB(230, 230, 210)
+    TotalMem.Font = CONFIG.FontBold
+    TotalMem.TextSize = 15
+    TotalMem.TextXAlignment = Enum.TextXAlignment.Left
+
+    local OnlineMem = Instance.new("TextLabel", StatsContainer)
+    OnlineMem.Size = UDim2.new(1, 0, 0.5, 0)
+    OnlineMem.Position = UDim2.new(0, 0, 0.5, 0)
+    OnlineMem.BackgroundTransparency = 1
+    OnlineMem.Text = "🟢 Trực tuyến: <font color='rgb(255, 240, 100)'><b>" .. CONFIG.OnlineMembers .. "</b></font>"
+    OnlineMem.RichText = true
+    OnlineMem.TextColor3 = Color3.fromRGB(230, 230, 210)
+    OnlineMem.Font = CONFIG.FontBold
+    OnlineMem.TextSize = 15
+    OnlineMem.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- MÔ TẢ
+    local Desc = Instance.new("TextLabel", Frame)
+    Desc.Size = UDim2.new(1, -40, 0, 70)
+    Desc.Position = UDim2.new(0, 20, 0, 140)
+    Desc.BackgroundTransparency = 1
+    Desc.Text = CONFIG.Description
+    Desc.TextColor3 = Color3.fromRGB(220, 220, 180)
+    Desc.Font = CONFIG.FontMain
+    Desc.TextSize = 14
+    Desc.TextWrapped = true
+    Desc.TextXAlignment = Enum.TextXAlignment.Left
+    Desc.TextYAlignment = Enum.TextYAlignment.Top
+    Desc.ZIndex = 2
+
+    -- NÚT CHỨC NĂNG (Thay thế nút Discord bằng nút Script)
+    local ScriptBtn = Instance.new("TextButton", Frame)
+    ScriptBtn.Size = UDim2.new(0.4, 0, 0, 40)
+    ScriptBtn.Position = UDim2.new(0.1, 0, 1, -55)
+    ScriptBtn.BackgroundColor3 = CONFIG.MainColor
+    ScriptBtn.Text = "🍌 LOAD SCRIPT"
+    ScriptBtn.TextColor3 = Color3.new(0, 0, 0) -- Chữ đen nổi trên nền vàng
+    ScriptBtn.Font = CONFIG.FontBold
+    ScriptBtn.TextSize = 16
+    ScriptBtn.ZIndex = 3
+    Instance.new("UICorner", ScriptBtn).CornerRadius = UDim.new(0, 8)
+
+    local ExecuteBtn = Instance.new("TextButton", Frame)
+    ExecuteBtn.Size = UDim2.new(0.4, 0, 0, 40)
+    ExecuteBtn.Position = UDim2.new(0.5, 0, 1, -55)
+    ExecuteBtn.BackgroundColor3 = CONFIG.GradientColor
+    ExecuteBtn.Text = "⚡ EXECUTE"
+    ExecuteBtn.TextColor3 = Color3.new(0, 0, 0) -- Chữ đen nổi trên nền vàng
+    ExecuteBtn.Font = CONFIG.FontBold
+    ExecuteBtn.TextSize = 16
+    ExecuteBtn.ZIndex = 3
+    Instance.new("UICorner", ExecuteBtn).CornerRadius = UDim.new(0, 8)
+
+    -- LOGIC HIỆU ỨNG NÚT BẤM
+    local function AddButtonEffects(btn)
+        btn.MouseEnter:Connect(function()
+            pcall(function() HoverSound:Play() end)
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
         end)
     end
-    
-    function LoadContent(secName)
-        for _, child in ipairs(Content:GetChildren()) do child:Destroy() end
-        local y = 15
-        
-        local function AddSectionTitle(text)
-            local f = Instance.new("Frame")
-            f.Parent = Content
-            f.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-            f.BorderSizePixel = 0
-            f.Position = UDim2.new(0, 10, 0, y)
-            f.Size = UDim2.new(1, -20, 0, 28)
-            Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
-            local lbl = Instance.new("TextLabel")
-            lbl.Parent = f
-            lbl.Text = "  " .. text
-            lbl.TextColor3 = Color3.fromRGB(255, 180, 30)
-            lbl.BackgroundTransparency = 1
-            lbl.Size = UDim2.new(1, 0, 1, 0)
-            lbl.Font = Enum.Font.SourceSansBold
-            lbl.TextSize = 12
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-            y = y + 34
-        end
-        
-        local function AddToggle(text, default, callback)
-            local f = Instance.new("Frame")
-            f.Parent = Content
-            f.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
-            f.BorderSizePixel = 0
-            f.Position = UDim2.new(0, 10, 0, y)
-            f.Size = UDim2.new(1, -20, 0, 36)
-            Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
-            local lbl = Instance.new("TextLabel")
-            lbl.Parent = f
-            lbl.Text = "  " .. text
-            lbl.TextColor3 = Color3.fromRGB(200, 200, 210)
-            lbl.BackgroundTransparency = 1
-            lbl.Size = UDim2.new(0.68, 0, 1, 0)
-            lbl.Font = Enum.Font.SourceSans
-            lbl.TextSize = 11
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-            local tb = Instance.new("TextButton")
-            tb.Parent = f
-            tb.Text = default and "ON" or "OFF"
-            tb.TextColor3 = Color3.fromRGB(255, 255, 255)
-            tb.BackgroundColor3 = default and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
-            tb.BorderSizePixel = 0
-            tb.Size = UDim2.new(0, 44, 0, 24)
-            tb.Position = UDim2.new(1, -54, 0.5, -12)
-            tb.Font = Enum.Font.SourceSansBold
-            tb.TextSize = 10
-            tb.AutoButtonColor = false
-            Instance.new("UICorner", tb).CornerRadius = UDim.new(0, 12)
-            local en = default or false
-            tb.MouseButton1Click:Connect(function()
-                en = not en
-                tb.Text = en and "ON" or "OFF"
-                tb.BackgroundColor3 = en and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
-                callback(en)
-            end)
-            y = y + 42
-        end
-        
-        local function AddButton(text, callback)
-            local btn = Instance.new("TextButton")
-            btn.Parent = Content
-            btn.Text = ""
-            btn.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
-            btn.BorderSizePixel = 0
-            btn.Position = UDim2.new(0, 10, 0, y)
-            btn.Size = UDim2.new(1, -20, 0, 36)
-            btn.AutoButtonColor = false
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-            local lbl = Instance.new("TextLabel")
-            lbl.Parent = btn
-            lbl.Text = "  " .. text
-            lbl.TextColor3 = Color3.fromRGB(200, 200, 210)
-            lbl.BackgroundTransparency = 1
-            lbl.Size = UDim2.new(1, 0, 1, 0)
-            lbl.Font = Enum.Font.SourceSans
-            lbl.TextSize = 12
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-            btn.MouseButton1Click:Connect(callback)
-            y = y + 42
-        end
-        
-        -- ==================== RENDER CONTENT ====================
-        if secName == "Shop" then
-            AddSectionTitle("Shop & Teleport")
-            AddButton("Misc Shop", function()
-                pcall(function()
-                    local c = LP.Character
-                    if c and c:FindFirstChild("HumanoidRootPart") then
-                        for _, npc in ipairs(Workspace:GetDescendants()) do
-                            if npc:IsA("Model") and npc.Name:lower():find("shop") and npc:FindFirstChild("Head") then
-                                c.HumanoidRootPart.CFrame = npc.Head.CFrame * CFrame.new(0, 3, 4)
-                                break
-                            end
-                        end
-                    end
-                end)
-            end)
-            AddButton("Redeem Code", function() print("Redeem Code System") end)
-            AddButton("Teleport Old World", function() TeleportService:Teleport(2753915549) end)
-            AddButton("Teleport New World", function() TeleportService:Teleport(4442272183) end)
-            AddButton("Teleport Third Sea", function() TeleportService:Teleport(7449423635) end)
-            AddButton("Buy Dual Flintlock", function() print("Buy Dual Flintlock") end)
-            AddButton("Reroll Race", function()
-                local c = LP.Character
-                if c and c:FindFirstChild("HumanoidRootPart") then
-                    for _, npc in ipairs(Workspace:GetDescendants()) do
-                        if npc:IsA("Model") and npc.Name:lower():find("reroll") then
-                            local head = npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
-                            if head then
-                                c.HumanoidRootPart.CFrame = head.CFrame * CFrame.new(0, 3, 4)
-                                local prompt = npc:FindFirstChildOfClass("ProximityPrompt")
-                                if prompt then fireproximityprompt(prompt) end
-                            end
-                            break
-                        end
-                    end
+    AddButtonEffects(ScriptBtn)
+    AddButtonEffects(ExecuteBtn)
+    AddButtonEffects(CloseBtn)
+    AddButtonEffects(HideBtn)
+    AddButtonEffects(FXBtn)
+
+    -- Hiệu ứng Ripple & Shake cho nút Script
+    local function AddRippleEffect(btn)
+        btn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if input.Target == btn then
+                    pcall(function() ClickSound:Play() end)
+                    local ripple = Instance.new("ImageLabel", btn)
+                    ripple.BackgroundTransparency = 1
+                    ripple.Image = "rbxassetid://2708891598"
+                    ripple.ImageTransparency = 0.6
+                    ripple.ImageColor3 = Color3.new(0,0,0) -- Ripple màu đen để tương phản
+                    ripple.ZIndex = 4
+                    
+                    local x = input.Position.X - btn.AbsolutePosition.X
+                    local y = input.Position.Y - btn.AbsolutePosition.Y
+                    local size = math.max(btn.AbsoluteSize.X, btn.AbsoluteSize.Y) * 1.5
+                    
+                    ripple.Position = UDim2.new(0, x, 0, y)
+                    ripple.Size = UDim2.new(0, 0, 0, 0)
+                    
+                    TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        Size = UDim2.new(0, size, 0, size),
+                        Position = UDim2.new(0, x - size/2, 0, y - size/2),
+                        ImageTransparency = 1
+                    }):Play()
+                    task.delay(0.5, function() ripple:Destroy() end)
                 end
-            end)
-            
-        elseif secName == "Status And Server" then
-            DetectSea()
-            CheckCurrentRace()
-            AddButton("Sea: " .. CurrentSea, function() end)
-            AddButton("Race: " .. PlayerRace .. " " .. PlayerRaceVersion, function() end)
-            AddButton("Rejoin Server", function() TeleportService:Teleport(game.PlaceId) end)
-            AddButton("Hop Server", function() TeleportService:Teleport(game.PlaceId) end)
-            
-        elseif secName == "LocalPlayer" then
-            AddToggle("WalkSpeed Boost", false, function(v)
-                local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = v and 100 or 16 end
-            end)
-            AddToggle("JumpPower Boost", false, function(v)
-                local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum.JumpPower = v and 100 or 50 end
-            end)
-            AddToggle("NoClip", false, function(v)
-                spawn(function()
-                    while v do
-                        pcall(function()
-                            local c = LP.Character
-                            if c then
-                                for _, part in ipairs(c:GetDescendants()) do
-                                    if part:IsA("BasePart") then part.CanCollide = false end
-                                end
-                            end
-                        end)
-                        task.wait(0.5)
-                    end
-                end)
-            end)
-            
-        elseif secName == "Setting Farm" then
-            AddSectionTitle("Main Farming")
-            AddToggle("Auto Farm", AutoFarmEnabled, function(v)
-                AutoFarmEnabled = v
-                if v then AutoFarm() end
-            end)
-            AddToggle("Fast Mode", FastHitEnabled, function(v)
-                FastHitEnabled = v
-                SilentKillDamage = v and 50 or 20
-                HitboxSize = v and 50 or 35
-            end)
-            AddToggle("Auto Skills", AutoSkillsEnabled, function(v)
-                AutoSkillsEnabled = v
-                if v then AutoSkills() end
-            end)
-            AddToggle("Auto Boss", AutoBossEnabled, function(v)
-                AutoBossEnabled = v
-                if v and not AutoFarmEnabled then
-                    AutoFarmEnabled = true
-                    AutoFarm()
-                end
-            end)
-            
-        elseif secName == "Farming" then
-            AddSectionTitle("Berry Farm")
-            AddToggle("Auto Farm Berry", AutoFarmBerryEnabled, function(v)
-                AutoFarmBerryEnabled = v
-                if v then FarmBerry() end
-            end)
-            AddButton("Berry Count: " .. BerryCount, function() end)
-            
-        elseif secName == "Race Upgrade" then
-            AddSectionTitle("👤 RACE UPGRADE V2 & V3")
-            DetectSea()
-            CheckCurrentRace()
-            AddButton("Tộc: " .. PlayerRace, function()
-                CheckCurrentRace()
-                LoadContent("Race Upgrade")
-            end)
-            AddButton("Version: " .. PlayerRaceVersion, function()
-                CheckCurrentRace()
-                LoadContent("Race Upgrade")
-            end)
-            
-            AddSectionTitle("V2 - Alchemist")
-            AddToggle("Auto Race V2", AutoRaceV2Enabled, function(v)
-                AutoRaceV2Enabled = v
-                if v then RaceV2Upgrade() end
-            end)
-            AddButton("Blue: " .. (BlueFlowerCollected and "✅" or "❌"), function() end)
-            AddButton("Red: " .. (RedFlowerCollected and "✅" or "❌"), function() end)
-            AddButton("Yellow: " .. (YellowFlowerCollected and "✅" or "❌"), function() end)
-            AddButton("V2: " .. (RaceV2Completed and "✅ Done" or "⏳ ..."), function() end)
-            
-            AddSectionTitle("V3 - Arowe")
-            AddToggle("Auto Race V3", AutoRaceV3Enabled, function(v)
-                AutoRaceV3Enabled = v
-                if v then RaceV3Upgrade() end
-            end)
-            AddButton("V3: " .. (RaceV3Completed and "✅ Done" or "⏳ ..."), function() end)
-            
-        elseif secName == "Stack Farming" then
-            AddSectionTitle("Stack Farming")
-            AddToggle("Stack Farm Players", AutoStackFarm, function(v)
-                AutoStackFarm = v
-                if v then StackFarm() end
-            end)
-            
-        elseif secName == "Farming Other" then
-            AddSectionTitle("Islands & Bosses")
-            AddToggle("Mystery Island", AutoMysteryIsland, function(v)
-                AutoMysteryIsland = v
-                if v then AutoIsland("Mystery") end
-            end)
-            AddToggle("Kitsune Island", AutoKitsuneIsland, function(v)
-                AutoKitsuneIsland = v
-                if v then AutoIsland("Kitsune") end
-            end)
-            AddToggle("Prehistoric Island", AutoPrehistoricIsland, function(v)
-                AutoPrehistoricIsland = v
-                if v then AutoIsland("Prehistoric") end
-            end)
-            AddToggle("Auto Leviathan", AutoLeviathan, function(v)
-                AutoLeviathan = v
-                if v then LeviathanFarm() end
-            end)
-            
-        elseif secName == "Fruit and Raid" then
-            AddSectionTitle("Raid & Dungeon")
-            AddToggle("Auto Raid", AutoRaidEnabled, function(v)
-                AutoRaidEnabled = v
-                if v then AutoRaid() end
-            end)
-            AddToggle("Auto Dungeon", AutoDungeonEnabled, function(v)
-                AutoDungeonEnabled = v
-                if v then AutoDungeon() end
-            end)
-            
-        elseif secName == "Haki 7 Mau (Rainbow)" then
-            AddSectionTitle("🌈 HAKI 7 MAU SYSTEM")
-            AddToggle("Auto Haki Quest", AutoHakiQuest, function(v)
-                AutoHakiQuest = v
-                if v then HakiQuestManager() end
-            end)
-            AddButton("Quest: " .. (HakiQuestCompleted and "✅ Done" or (HakiQuestStarted and "⏳ ..." or "❌")), function() end)
-            AddSectionTitle("5 Boss Progress")
-            for i = 1, 5 do
-                AddButton(i .. ". " .. HakiBosses[i].name .. ": " .. (HakiBosses[i].killed and "✅" or "❌"), function() end)
             end
-            AddButton("Rainbow: " .. (RainbowHakiUnlocked and "✅ UNLOCKED!" or "🔒"), function() end)
-            
-        elseif secName == "Race V4 (Blue Gear)" then
-            AddSectionTitle("🌙 MOON GAZE + BLUE GEAR")
-            AddToggle("Auto Nhìn Trăng", AutoMoonGaze, function(v)
-                AutoMoonGaze = v
-                if v then MoonGaze() end
-            end)
-            AddToggle("Auto Nhặt Blue Gear", AutoBlueGear, function(v)
-                AutoBlueGear = v
-                if v then BlueGearCollector() end
-            end)
-            AddButton("Blue Gear: " .. (BlueGearCollected and "✅ Đã nhặt" or "❌ Chưa có"), function() end)
-            AddButton("Thời gian: " .. (IsNightTime() and "🌙 Đêm" or "☀️ Ngày"), function() end)
-            AddSectionTitle("Hướng dẫn")
-            AddButton("1. Đợi ban đêm", function() end)
-            AddButton("2. Tìm Mirage Island", function() end)
-            AddButton("3. Lên điểm cao nhất", function() end)
-            AddButton("4. Bật V3 + Nhìn trăng 15s", function() end)
-            AddButton("5. Nhặt Blue Gear", function() end)
-            
-        elseif secName == "Sea Event" then
-            AddSectionTitle("Sea Events")
-            AddButton("Sea Beast", function()
-                local c = LP.Character
-                if c and c:FindFirstChild("HumanoidRootPart") then
-                    local root = c:FindFirstChild("HumanoidRootPart")
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj.Name:lower():find("sea") and obj.Name:lower():find("beast") and obj:FindFirstChildOfClass("Humanoid") then
-                            local lr = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
-                            if lr then
-                                root.CFrame = lr.CFrame * CFrame.new(0, 40, 0)
-                                obj:FindFirstChildOfClass("Humanoid").Health = 0
-                            end
-                            break
-                        end
-                    end
-                end
-            end)
-        end
-        
-        Content.CanvasSize = UDim2.new(0, 0, 0, y + 20)
+        end)
     end
-    
-    LoadContent(selected)
-    
-    -- Drag
-    local dragging, dragStart, startPos = false, nil, nil
-    Header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true; dragStart = input.Position; startPos = Main.Position
+    AddRippleEffect(ScriptBtn)
+    AddRippleEffect(ExecuteBtn)
+
+    -- Chức năng nút Script (Load Script)
+    ScriptBtn.MouseButton1Click:Connect(function()
+        local origPos = ScriptBtn.Position
+        for i = 1, 6 do
+            ScriptBtn.Position = origPos + UDim2.new(0, math.random(-3, 3), 0, math.random(-3, 3))
+            task.wait(0.02)
+        end
+        ScriptBtn.Position = origPos
+        
+        ScriptBtn.Text = " ✔ ĐÃ LOAD!"
+        ScriptBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 50)
+        SendNotification("Thành công", "Script đã được load thành công!", 3)
+        task.wait(2)
+        ScriptBtn.Text = "🍌 LOAD SCRIPT"
+        ScriptBtn.BackgroundColor3 = CONFIG.MainColor
+    end)
+
+    -- Chức năng nút Execute (Thực thi Script)
+    ExecuteBtn.MouseButton1Click:Connect(function()
+        local origPos = ExecuteBtn.Position
+        for i = 1, 6 do
+            ExecuteBtn.Position = origPos + UDim2.new(0, math.random(-3, 3), 0, math.random(-3, 3))
+            task.wait(0.02)
+        end
+        ExecuteBtn.Position = origPos
+        
+        ExecuteBtn.Text = " ✔ ĐÃ EXECUTE!"
+        ExecuteBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 50)
+        SendNotification("Thành công", "Script đã được thực thi thành công!", 3)
+        task.wait(2)
+        ExecuteBtn.Text = "⚡ EXECUTE"
+        ExecuteBtn.BackgroundColor3 = CONFIG.GradientColor
+    end)
+
+    -- Nút Tắt/Bật Nhạc
+    FXBtn.MouseButton1Click:Connect(function()
+        pcall(function() ClickSound:Play() end)
+        isEffectsOn = not isEffectsOn
+        if isEffectsOn then
+            FXBtn.BackgroundColor3 = CONFIG.MainColor
+            pcall(function() BgMusic:Resume() end)
+            FrameStroke.Color = CONFIG.MainColor
+            FrameStroke.Thickness = 2
+        else
+            FXBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            pcall(function() BgMusic:Pause() end)
+            FrameStroke.Color = Color3.fromRGB(100, 100, 100)
         end
     end)
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-    UIS.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+
+    -- Mở / Đóng giao diện
+    local isVisible = true
+    local function ToggleUI()
+        isVisible = not isVisible
+        if isVisible then
+            pcall(function() ClickSound:Play() end)
+            MiniBtn.Visible = false
+            Frame.Visible = true
+            TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 480, 0, 280)}):Play()
+            CreateParticles(Frame)
+        else
+            pcall(function() ClickSound:Play() end)
+            local tween = TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+            tween:Play()
+            tween.Completed:Wait()
+            Frame.Visible = false
+            MiniBtn.Visible = true
+            SendNotification("Đã ẩn Menu", "Bấm vào Logo hoặc nhấn " .. tostring(CONFIG.ToggleKey) .. " để mở lại.", 3)
         end
+    end
+
+    HideBtn.MouseButton1Click:Connect(ToggleUI)
+    MiniBtn.MouseButton1Click:Connect(ToggleUI)
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if not gameProcessedEvent and input.KeyCode == CONFIG.ToggleKey then ToggleUI() end
     end)
-    
-    -- Toggle UI
-    UIS.InputBegan:Connect(function(input, gpe)
-        if gpe then return end
-        if input.KeyCode == Enum.KeyCode.RightShift then
-            isUIOpen = not isUIOpen
-            Main.Visible = isUIOpen
-        end
-    end)
-    
+
+    -- Đóng hoàn toàn (Xóa Script)
     CloseBtn.MouseButton1Click:Connect(function()
-        Main.Visible = not Main.Visible
+        pcall(function() ClickSound:Play() end)
+        pcall(function() BgMusic:Stop() end)
+        local tween = TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+        tween:Play()
+        tween.Completed:Wait()
+        ScreenGui:Destroy()
+    end)
+
+    -- KHỞI CHẠY GIAO DIỆN
+    pcall(function() BgMusic:Play() end)
+    TweenService:Create(Frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 480, 0, 280)}):Play()
+    CreateParticles(Frame)
+    
+    -- Vòng lặp điện giật
+    task.spawn(function()
+        while Frame.Parent do
+            if isEffectsOn then
+                TweenService:Create(FrameStroke, TweenInfo.new(0.1), {
+                    Color = (math.random(1,2) == 1 and CONFIG.MainColor or CONFIG.GradientColor),
+                    Thickness = math.random(1, 3)
+                }):Play()
+            end
+            task.wait(0.15)
+        end
     end)
 end
 
--- Anti AFK
-LP.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+--// ================== [ THỰC THI KỊCH BẢN ] =================== //--
+StartLoading(function()
+    SendNotification("Thành công", "🍌 " .. CONFIG.HubName .. " đã tải thành công! 🍌", 4)
+    CreateMainMenu()
 end)
-
--- Initialize
-DetectSea()
-CheckCurrentRace()
-CreateUI()
-SilentKillAlways()
-
-print("========================================")
-print(" 🍌🐱 Banana Cat Hub - Blox Fruit v9.0")
-print("========================================")
-print(" 🔪 Silent Kill: AUTO ON (Luôn bật)")
-print(" ⚔️ Auto Farm | 🎯 Auto Skills | 😈 Boss")
-print(" 👤 Race V2: Alchemist + 3 Hoa")
-print(" 👤 Race V3: Arowe + Quest riêng tộc")
-print(" 🌈 Haki 7 Màu: Full Auto Quest")
-print(" 🌙 Moon Gaze + 🔵 Blue Gear (V4 Prep)")
-print(" 🍓 Berry | 🏃 Stack | 🏝️ Islands | 👾 Raid")
-print("========================================")
-print(" 🎮 RightShift: Mo/Tat UI")
-print(" 📂 Tabs: Race Upgrade | Haki 7 Mau | Race V4")
-print("========================================")
